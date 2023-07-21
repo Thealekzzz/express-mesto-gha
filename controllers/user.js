@@ -55,6 +55,11 @@ const createUser = (req, res) => {
       res.status(OK).send(newUser);
     })
     .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Ошибка валидации данных' });
+        return;
+      }
+
       res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
@@ -106,7 +111,7 @@ const updateUser = (req, res) => {
     return;
   }
 
-  User.findByIdAndUpdate(userId, { name, about }, { new: true })
+  User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((data) => {
       if (!data) {
         res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
@@ -118,6 +123,11 @@ const updateUser = (req, res) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      if (err.name === 'ValidationError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Ошибка валидации данных' });
         return;
       }
 
