@@ -1,12 +1,15 @@
+const {
+  USER_SIDE_ERROR, SERVER_SIDE_ERROR, OK, NOT_FOUND_ERROR,
+} = require('../consts/errors');
 const Card = require('../models/card');
 
 const getCards = (req, res) => {
   Card.find({})
     .then((data) => {
-      res.send(data);
+      res.status(OK).send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -15,7 +18,7 @@ const createCard = (req, res) => {
   const ownerId = req.user._id;
 
   if (!name || !link) {
-    res.status(400).send({ message: 'Не отправлены данные карточки' });
+    res.status(USER_SIDE_ERROR).send({ message: 'Данные карточки не отправлены' });
     return;
   }
 
@@ -23,10 +26,14 @@ const createCard = (req, res) => {
 
   newCard.save()
     .then(() => {
-      res.status(200).send(newCard);
+      res.status(OK).send(newCard);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'ValidationError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Отправленные данные не прошли валидацию' });
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -34,20 +41,25 @@ const deleteCard = (req, res) => {
   const { cardId } = req.params;
 
   if (!cardId) {
-    res.status(400).send({ message: 'Не передан ID карточки' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID карточки не передан' });
   }
 
   Card.deleteOne({ _id: cardId })
     .then((data) => {
       if (data.deletedCount !== 0) {
-        res.send(data);
+        res.status(OK).send(data);
         return;
       }
 
-      res.status(404).send({ message: 'Передан ID несуществующий карточки' });
+      res.status(NOT_FOUND_ERROR).send({ message: 'Передан ID несуществующий карточки' });
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID карточки' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -56,24 +68,29 @@ const likeCard = (req, res) => {
   const userId = req.user._id;
 
   if (!cardId) {
-    res.status(404).send({ message: 'Не передан ID карточки' });
+    res.status(NOT_FOUND_ERROR).send({ message: 'ID карточки не передан' });
   }
 
   if (!userId) {
-    res.status(400).send({ message: 'Не передан ID пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не передан' });
   }
 
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
     .then((data) => {
       if (!data) {
-        res.status(404).send({ message: 'Карточки с таким ID не существует' });
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
         return;
       }
 
-      res.send(data);
+      res.status(OK).send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -82,24 +99,29 @@ const unlikeCard = (req, res) => {
   const userId = req.user._id;
 
   if (!cardId) {
-    res.status(404).send({ message: 'Не передан ID карточки' });
+    res.status(NOT_FOUND_ERROR).send({ message: 'ID карточки не передан' });
   }
 
   if (!userId) {
-    res.status(400).send({ message: 'Не передан ID пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не передан' });
   }
 
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
     .then((data) => {
       if (!data) {
-        res.status(404).send({ message: 'Карточки с таким ID не существует' });
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
         return;
       }
 
-      res.send(data);
+      res.status(OK).send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 

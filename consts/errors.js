@@ -1,0 +1,8 @@
+const USER_SIDE_ERROR = 400;
+const NOT_FOUND_ERROR = 404;
+const SERVER_SIDE_ERROR = 500;
+const OK = 200;
+
+module.exports = {
+  USER_SIDE_ERROR, NOT_FOUND_ERROR, SERVER_SIDE_ERROR, OK,
+};

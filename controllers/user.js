@@ -1,4 +1,7 @@
 const User = require('../models/user');
+const {
+  USER_SIDE_ERROR, NOT_FOUND_ERROR, SERVER_SIDE_ERROR, OK,
+} = require('../consts/errors');
 
 const getUsers = (req, res) => {
   User.find({})
@@ -6,7 +9,7 @@ const getUsers = (req, res) => {
       res.send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -14,21 +17,26 @@ const getUserById = (req, res) => {
   const { userId } = req.params;
 
   if (!userId) {
-    res.status(400).send({ message: 'Не отправлен id пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
     return;
   }
 
   User.findById(userId)
     .then((data) => {
-      if (data) {
-        res.status(200).send(data);
+      if (!data) {
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
         return;
       }
 
-      res.status(404).send({ message: 'Пользователя с таким ID не существует' });
+      res.status(OK).send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -36,7 +44,7 @@ const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
 
   if (!name || !about || !avatar) {
-    res.status(400).send({ message: 'Не отправлены данные пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'Данные пользователя не отправлены' });
     return;
   }
 
@@ -44,10 +52,10 @@ const createUser = (req, res) => {
 
   newUser.save()
     .then(() => {
-      res.status(200).send(newUser);
+      res.status(OK).send(newUser);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -56,26 +64,31 @@ const updateAvatar = (req, res) => {
   const { avatar } = req.body;
 
   if (!userId) {
-    res.status(400).send({ message: 'Не отправлен ID пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
     return;
   }
 
   if (!avatar) {
-    res.status(400).send({ message: 'Не передан аватар пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'Аватар пользователя не отправлен' });
     return;
   }
 
   User.findByIdAndUpdate(userId, { avatar }, { new: true })
     .then((data) => {
       if (!data) {
-        res.status(404).send({ message: 'Пользователя с таким ID не существует' });
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
         return;
       }
 
       res.send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
@@ -84,26 +97,31 @@ const updateUser = (req, res) => {
   const { name, about } = req.body;
 
   if (!userId) {
-    res.status(400).send({ message: 'Не отправлен ID пользователя' });
+    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
     return;
   }
 
   if (!name && !about) {
-    res.status(400).send({ message: 'Не переданы данные для обновления' });
+    res.status(USER_SIDE_ERROR).send({ message: 'Данные для обновления не переданы' });
     return;
   }
 
   User.findByIdAndUpdate(userId, { name, about }, { new: true })
     .then((data) => {
       if (!data) {
-        res.status(404).send({ message: 'Пользователь с таким ID не найден' });
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
         return;
       }
 
       res.send(data);
     })
     .catch((err) => {
-      res.status(500).send({ name: err.name, message: err.message });
+      if (err.name === 'CastError') {
+        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
     });
 };
 
