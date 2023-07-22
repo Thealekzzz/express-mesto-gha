@@ -1,7 +1,7 @@
 const User = require('../models/user');
 const {
-  USER_SIDE_ERROR, NOT_FOUND_ERROR, SERVER_SIDE_ERROR, OK,
-} = require('../consts/errors');
+  USER_SIDE_ERROR, NOT_FOUND_ERROR, SERVER_SIDE_ERROR, OK, CREATED,
+} = require('../consts/statuses');
 
 const getUsers = (req, res) => {
   User.find({})
@@ -22,17 +22,18 @@ const getUserById = (req, res) => {
   }
 
   User.findById(userId)
+    .orFail(new Error('InvalidID'))
     .then((data) => {
-      if (!data) {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
-        return;
-      }
-
       res.status(OK).send(data);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
+        return;
+      }
+
+      if (err.message === 'InvalidID') {
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
         return;
       }
 
@@ -52,7 +53,7 @@ const createUser = (req, res) => {
 
   newUser.save()
     .then(() => {
-      res.status(OK).send(newUser);
+      res.status(CREATED).send(newUser);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
