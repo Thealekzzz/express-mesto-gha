@@ -60,7 +60,7 @@ const deleteCard = (req, res) => {
       }
 
       if (err.message === 'InvalidID') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
+        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
         return;
       }
 
