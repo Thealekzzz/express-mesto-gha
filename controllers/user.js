@@ -25,7 +25,7 @@ const ConflictError = require('../errors/ConflictError');
 
 const getUsers = (req, res, next) => {
   User.find({})
-    .then(res.send)
+    .then((users) => res.status(OK).send(users))
     .catch(next);
 };
 
@@ -45,13 +45,7 @@ const getUserById = (req, res, next) => {
 
       res.status(OK).send(user);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const createUser = async (req, res, next) => {
@@ -71,14 +65,11 @@ const createUser = async (req, res, next) => {
   });
 
   newUser.save()
-    .then(() => {
-      res.status(CREATED).send(newUser);
+    .then((user) => {
+      const { password: _, ...userWithoutPassword } = user._doc;
+      res.status(CREATED).send(userWithoutPassword);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new UserSideError(invalidUserSignupCredentials));
-      }
-
       if (err.code === 11000) {
         next(new ConflictError(emailIsAlreadyUsed));
       }
@@ -186,7 +177,7 @@ const login = (req, res, next) => {
           httpOnly: true,
         });
 
-        res.status(OK).send('✌');
+        res.status(OK).send({});
       });
     })
     .catch(next);

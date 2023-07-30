@@ -9,14 +9,14 @@ const {
   getMe,
 } = require('../controllers/user');
 const {
-  getUserByIdValidation,
+  getUserByIdValidation, updateAvatarValidation, updateUserValidation,
 } = require('../middlewares/validations/user');
 
 userRouter.get('/me', auth, getMe);
 userRouter.get('/:userId', getUserByIdValidation, auth, getUserById);
 userRouter.get('/', auth, getUsers);
 
-userRouter.patch('/me', auth, updateUser);
-userRouter.patch('/me/avatar', auth, updateAvatar);
+userRouter.patch('/me', updateUserValidation, auth, updateUser);
+userRouter.patch('/me/avatar', updateAvatarValidation, auth, updateAvatar);
 
 module.exports = userRouter;

@@ -35,9 +35,9 @@ const createCard = (req, res, next) => {
       res.status(CREATED).send(newCard);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new UserSideError(invalidCardCredentials));
-      }
+      // if (err.name === 'ValidationError') {
+      //   next(new UserSideError(invalidCardCredentials));
+      // }
 
       next(err);
     });

@@ -28,8 +28,23 @@ const getUserByIdValidation = celebrate({
   }),
 });
 
+const updateAvatarValidation = celebrate({
+  body: Joi.object().keys({
+    avatar: Joi.string().uri().required(),
+  }),
+});
+
+const updateUserValidation = celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30).optional(),
+    about: Joi.string().min(2).max(30).optional(),
+  }),
+});
+
 module.exports = {
   loginValidation,
   createUserValidation,
   getUserByIdValidation,
+  updateAvatarValidation,
+  updateUserValidation,
 };
