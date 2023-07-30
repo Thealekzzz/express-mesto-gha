@@ -30,10 +30,4 @@ app.all('/*', (req, res, next) => next(new NotFoundError(pathNotFound)));
 
 app.use(errors());
 app.use(error);
-app.listen(PORT, (err) => {
-  if (err) {
-    console.log('Ошибка запуска сервера');
-  }
-
-  console.log(`Сервер запущен на порту ${PORT}`);
-});
+app.listen(PORT);
