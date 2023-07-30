@@ -1,19 +1,25 @@
 const {
-  USER_SIDE_ERROR, SERVER_SIDE_ERROR, OK, NOT_FOUND_ERROR, CREATED,
+  invalidCardCredentials, cardNotFound, deletingOthersCard, invalidIdFormat,
+} = require('../consts/errorMessages');
+const {
+  USER_SIDE_ERROR, OK, NOT_FOUND_ERROR, CREATED,
 } = require('../consts/statuses');
+
+const ForbiddenError = require('../errors/ForbiddenError');
+const NotFoundError = require('../errors/NotFoundError');
+const UserSideError = require('../errors/UserSideError');
+
 const Card = require('../models/card');
 
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((data) => {
       res.status(OK).send(data);
     })
-    .catch((err) => {
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
-    });
+    .catch(next);
 };
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   const ownerId = req.user._id;
 
@@ -30,45 +36,47 @@ const createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Отправленные данные не прошли валидацию' });
-        return;
+        next(new UserSideError(invalidCardCredentials));
       }
 
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      next(err);
     });
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
+  const { _id: userId } = req.user;
 
   if (!cardId) {
     res.status(USER_SIDE_ERROR).send({ message: 'ID карточки не передан' });
   }
 
-  Card.deleteOne({ _id: cardId })
-    .then((data) => {
-      if (data.deletedCount === 0) {
-        throw new Error('InvalidID');
+  Card.findById(cardId)
+    .then((card) => {
+      if (!card) {
+        throw new NotFoundError(cardNotFound);
       }
 
-      res.status(OK).send(data);
+      if (!card.owner.equals(userId)) {
+        throw new ForbiddenError(deletingOthersCard);
+      }
+
+      Card.deleteOne({ _id: cardId })
+        .then((data) => {
+          res.status(OK).send(data);
+        })
+        .catch(next);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID карточки' });
-        return;
+        next(new UserSideError(invalidIdFormat));
       }
 
-      if (err.message === 'InvalidID') {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
-        return;
-      }
-
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      next(err);
     });
 };
 
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   const { cardId } = req.params;
   const userId = req.user._id;
 
@@ -81,29 +89,23 @@ const likeCard = (req, res) => {
   }
 
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
-    .then((data) => {
-      if (!data) {
-        throw new Error('InvalidID');
+    .then((card) => {
+      if (!card) {
+        throw new NotFoundError(cardNotFound);
       }
 
-      res.status(OK).send(data);
+      res.status(OK).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
-        return;
+        throw new UserSideError(invalidIdFormat);
       }
 
-      if (err.message === 'InvalidID') {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
-        return;
-      }
-
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      next(err);
     });
 };
 
-const unlikeCard = (req, res) => {
+const unlikeCard = (req, res, next) => {
   const { cardId } = req.params;
   const userId = req.user._id;
 
@@ -116,25 +118,19 @@ const unlikeCard = (req, res) => {
   }
 
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
-    .then((data) => {
-      if (!data) {
-        throw new Error('InvalidID');
+    .then((card) => {
+      if (!card) {
+        throw new NotFoundError(cardNotFound);
       }
 
-      res.status(OK).send(data);
+      res.status(OK).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
-        return;
+        next(new UserSideError(invalidIdFormat));
       }
 
-      if (err.message === 'InvalidID') {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемая карточка не найдена' });
-        return;
-      }
-
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      next(err);
     });
 };
 

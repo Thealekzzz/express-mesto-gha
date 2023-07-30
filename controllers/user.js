@@ -1,19 +1,35 @@
-const User = require('../models/user');
-const {
-  USER_SIDE_ERROR, NOT_FOUND_ERROR, SERVER_SIDE_ERROR, OK, CREATED,
-} = require('../consts/statuses');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-const getUsers = (req, res) => {
+const User = require('../models/user');
+
+const {
+  USER_SIDE_ERROR,
+  OK,
+  CREATED,
+  UNAUTHORIZED_ERROR,
+} = require('../consts/statuses');
+const {
+  emailIsAlreadyUsed,
+  userNotFound,
+  invalidIdFormat,
+  invalidUserSignupCredentials,
+  invalidUserSigninCredentials,
+  invalidAvatar,
+} = require('../consts/errorMessages');
+
+const UserSideError = require('../errors/UserSideError');
+const NotFoundError = require('../errors/NotFoundError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+const ConflictError = require('../errors/ConflictError');
+
+const getUsers = (req, res, next) => {
   User.find({})
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
-    });
+    .then(res.send)
+    .catch(next);
 };
 
-const getUserById = (req, res) => {
+const getUserById = (req, res, next) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -22,34 +38,37 @@ const getUserById = (req, res) => {
   }
 
   User.findById(userId)
-    .orFail(new Error('InvalidID'))
-    .then((data) => {
-      res.status(OK).send(data);
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError(userNotFound);
+      }
+
+      res.status(OK).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
-        return;
+        next(new UserSideError(invalidIdFormat));
       }
 
-      if (err.message === 'InvalidID') {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
-        return;
-      }
-
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      next(err);
     });
 };
 
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+const createUser = async (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
 
-  if (!name || !about || !avatar) {
+  if (!email || !password) {
     res.status(USER_SIDE_ERROR).send({ message: 'Данные пользователя не отправлены' });
     return;
   }
 
-  const newUser = new User({ name, avatar, about });
+  const hash = await bcrypt.hash(password, 6);
+
+  const newUser = new User({
+    name, avatar, about, email, password: hash,
+  });
 
   newUser.save()
     .then(() => {
@@ -57,15 +76,18 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Ошибка валидации данных' });
-        return;
+        next(new UserSideError(invalidUserSignupCredentials));
       }
 
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      if (err.code === 11000) {
+        next(new ConflictError(emailIsAlreadyUsed));
+      }
+
+      next(err);
     });
 };
 
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const userId = req.user._id;
   const { avatar } = req.body;
 
@@ -79,26 +101,28 @@ const updateAvatar = (req, res) => {
     return;
   }
 
-  User.findByIdAndUpdate(userId, { avatar }, { new: true })
-    .then((data) => {
-      if (!data) {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
-        return;
+  User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError(userNotFound);
       }
 
-      res.send(data);
+      res.send(user);
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
-        return;
+      if (err.name === 'ValidationError') {
+        next(new UserSideError(invalidAvatar));
       }
 
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      if (err.name === 'CastError') {
+        next(new UserSideError(invalidIdFormat));
+      }
+
+      next(err);
     });
 };
 
-const updateUser = (req, res) => {
+const updateUser = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
 
@@ -115,27 +139,79 @@ const updateUser = (req, res) => {
   User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((data) => {
       if (!data) {
-        res.status(NOT_FOUND_ERROR).send({ message: 'Запрашиваемый пользователь не найден' });
-        return;
+        throw new NotFoundError(userNotFound);
       }
 
       res.send(data);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Неверный формат ID пользователя' });
-        return;
+        next(new UserSideError(invalidIdFormat));
       }
 
-      if (err.name === 'ValidationError') {
-        res.status(USER_SIDE_ERROR).send({ message: 'Ошибка валидации данных' });
-        return;
+      next(err);
+    });
+};
+
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(UNAUTHORIZED_ERROR).send({ message: 'Данные для входа в аккаунт не переданы' });
+    return;
+  }
+
+  User.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        throw new UnauthorizedError(invalidUserSigninCredentials);
       }
 
-      res.status(SERVER_SIDE_ERROR).send({ message: err.message });
+      bcrypt.compare(password, user.password, (err, matched) => {
+        if (err) {
+          next(err);
+          return;
+        }
+
+        if (!matched) {
+          throw new UnauthorizedError(invalidUserSigninCredentials);
+        }
+
+        const token = jwt.sign({ _id: user._id }, process.env.PRIVATE_KEY, {
+          expiresIn: '7d',
+        });
+
+        res.cookie('token', token, {
+          maxAge: 1000 * 60 * 60 * 24 * 7,
+          httpOnly: true,
+        });
+
+        res.status(OK).send('✌');
+      });
+    })
+    .catch(next);
+};
+
+const getMe = (req, res, next) => {
+  const { _id } = req.user;
+
+  User.findById(_id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError(userNotFound);
+      }
+
+      res.status(OK).send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new UserSideError(invalidIdFormat));
+      }
+
+      next(err);
     });
 };
 
 module.exports = {
-  getUsers, getUserById, createUser, updateAvatar, updateUser,
+  getUsers, getUserById, createUser, updateAvatar, updateUser, login, getMe,
 };
