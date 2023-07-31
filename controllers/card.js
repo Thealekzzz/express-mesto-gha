@@ -1,5 +1,5 @@
 const {
-  invalidCardCredentials, cardNotFound, deletingOthersCard, invalidIdFormat,
+  cardNotFound, deletingOthersCard,
 } = require('../consts/errorMessages');
 const {
   USER_SIDE_ERROR, OK, NOT_FOUND_ERROR, CREATED,
@@ -7,7 +7,6 @@ const {
 
 const ForbiddenError = require('../errors/ForbiddenError');
 const NotFoundError = require('../errors/NotFoundError');
-const UserSideError = require('../errors/UserSideError');
 
 const Card = require('../models/card');
 

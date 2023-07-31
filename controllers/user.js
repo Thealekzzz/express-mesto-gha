@@ -12,11 +12,9 @@ const {
 const {
   emailIsAlreadyUsed,
   userNotFound,
-  invalidIdFormat,
   invalidUserSigninCredentials,
 } = require('../consts/errorMessages');
 
-const UserSideError = require('../errors/UserSideError');
 const NotFoundError = require('../errors/NotFoundError');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 const ConflictError = require('../errors/ConflictError');
