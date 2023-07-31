@@ -34,13 +34,7 @@ const createCard = (req, res, next) => {
     .then(() => {
       res.status(CREATED).send(newCard);
     })
-    .catch((err) => {
-      // if (err.name === 'ValidationError') {
-      //   next(new UserSideError(invalidCardCredentials));
-      // }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const deleteCard = (req, res, next) => {
@@ -67,13 +61,7 @@ const deleteCard = (req, res, next) => {
         })
         .catch(next);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const likeCard = (req, res, next) => {
@@ -96,13 +84,7 @@ const likeCard = (req, res, next) => {
 
       res.status(OK).send(card);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new UserSideError(invalidIdFormat);
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const unlikeCard = (req, res, next) => {
@@ -125,13 +107,7 @@ const unlikeCard = (req, res, next) => {
 
       res.status(OK).send(card);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 module.exports = {

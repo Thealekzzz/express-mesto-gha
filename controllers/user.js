@@ -13,9 +13,7 @@ const {
   emailIsAlreadyUsed,
   userNotFound,
   invalidIdFormat,
-  invalidUserSignupCredentials,
   invalidUserSigninCredentials,
-  invalidAvatar,
 } = require('../consts/errorMessages');
 
 const UserSideError = require('../errors/UserSideError');
@@ -100,17 +98,7 @@ const updateAvatar = (req, res, next) => {
 
       res.send(user);
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new UserSideError(invalidAvatar));
-      }
-
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const updateUser = (req, res, next) => {
@@ -135,13 +123,7 @@ const updateUser = (req, res, next) => {
 
       res.send(data);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 const login = (req, res, next) => {
@@ -194,13 +176,7 @@ const getMe = (req, res, next) => {
 
       res.status(OK).send(user);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new UserSideError(invalidIdFormat));
-      }
-
-      next(err);
-    });
+    .catch(next);
 };
 
 module.exports = {

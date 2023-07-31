@@ -11,19 +11,19 @@ const createCardValidation = celebrate({
 
 const likeCardValidation = celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().required(),
+    cardId: Joi.string().length(24).required(),
   }),
 });
 
 const unlikeCardValidation = celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().required(),
+    cardId: Joi.string().length(24).required(),
   }),
 });
 
 const deleteCardValidation = celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().required(),
+    cardId: Joi.string().length(24).required(),
   }),
 });
 
