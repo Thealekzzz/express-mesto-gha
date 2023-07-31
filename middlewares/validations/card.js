@@ -1,9 +1,10 @@
 const { celebrate, Joi } = require('celebrate');
+const { urlPattern } = require('../../consts/regexs');
 
 const createCardValidation = celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30).required(),
-    link: Joi.string().uri().required(),
+    link: Joi.string().pattern(urlPattern).required(),
   }),
 
 });
