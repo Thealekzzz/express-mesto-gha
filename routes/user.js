@@ -13,10 +13,10 @@ const {
 } = require('../middlewares/validations/user');
 
 userRouter.get('/me', auth, getMe);
-userRouter.get('/:userId', getUserByIdValidation, auth, getUserById);
+userRouter.get('/:userId', auth, getUserByIdValidation, getUserById);
 userRouter.get('/', auth, getUsers);
 
-userRouter.patch('/me', updateUserValidation, auth, updateUser);
-userRouter.patch('/me/avatar', updateAvatarValidation, auth, updateAvatar);
+userRouter.patch('/me', auth, updateUserValidation, updateUser);
+userRouter.patch('/me/avatar', auth, updateAvatarValidation, updateAvatar);
 
 module.exports = userRouter;

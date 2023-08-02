@@ -2,7 +2,7 @@ const {
   cardNotFound, deletingOthersCard,
 } = require('../consts/errorMessages');
 const {
-  USER_SIDE_ERROR, OK, NOT_FOUND_ERROR, CREATED,
+  OK, CREATED,
 } = require('../consts/statuses');
 
 const ForbiddenError = require('../errors/ForbiddenError');
@@ -22,11 +22,6 @@ const createCard = (req, res, next) => {
   const { name, link } = req.body;
   const ownerId = req.user._id;
 
-  if (!name || !link) {
-    res.status(USER_SIDE_ERROR).send({ message: 'Данные карточки не отправлены' });
-    return;
-  }
-
   const newCard = new Card({ name, link, owner: ownerId });
 
   newCard.save()
@@ -40,12 +35,8 @@ const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
   const { _id: userId } = req.user;
 
-  if (!cardId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID карточки не передан' });
-  }
-
   Card.findById(cardId)
-    .then((card) => {
+    .then(async (card) => {
       if (!card) {
         throw new NotFoundError(cardNotFound);
       }
@@ -54,11 +45,9 @@ const deleteCard = (req, res, next) => {
         throw new ForbiddenError(deletingOthersCard);
       }
 
-      Card.deleteOne({ _id: cardId })
-        .then((data) => {
-          res.status(OK).send(data);
-        })
-        .catch(next);
+      await card.deleteOne();
+
+      res.status(OK).send(card);
     })
     .catch(next);
 };
@@ -66,14 +55,6 @@ const deleteCard = (req, res, next) => {
 const likeCard = (req, res, next) => {
   const { cardId } = req.params;
   const userId = req.user._id;
-
-  if (!cardId) {
-    res.status(NOT_FOUND_ERROR).send({ message: 'ID карточки не передан' });
-  }
-
-  if (!userId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не передан' });
-  }
 
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
     .then((card) => {
@@ -89,14 +70,6 @@ const likeCard = (req, res, next) => {
 const unlikeCard = (req, res, next) => {
   const { cardId } = req.params;
   const userId = req.user._id;
-
-  if (!cardId) {
-    res.status(NOT_FOUND_ERROR).send({ message: 'ID карточки не передан' });
-  }
-
-  if (!userId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не передан' });
-  }
 
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
     .then((card) => {

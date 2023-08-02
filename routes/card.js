@@ -17,11 +17,11 @@ const auth = require('../middlewares/auth');
 
 cardRouter.get('/', auth, getCards);
 
-cardRouter.post('/', createCardValidation, auth, createCard);
+cardRouter.post('/', auth, createCardValidation, createCard);
 
-cardRouter.put('/:cardId/likes', likeCardValidation, auth, likeCard);
+cardRouter.put('/:cardId/likes', auth, likeCardValidation, likeCard);
 
-cardRouter.delete('/:cardId', deleteCardValidation, auth, deleteCard);
-cardRouter.delete('/:cardId/likes', unlikeCardValidation, auth, unlikeCard);
+cardRouter.delete('/:cardId', auth, deleteCardValidation, deleteCard);
+cardRouter.delete('/:cardId/likes', auth, unlikeCardValidation, unlikeCard);
 
 module.exports = cardRouter;

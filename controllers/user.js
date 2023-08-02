@@ -4,10 +4,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 const {
-  USER_SIDE_ERROR,
   OK,
   CREATED,
-  UNAUTHORIZED_ERROR,
 } = require('../consts/statuses');
 const {
   emailIsAlreadyUsed,
@@ -28,11 +26,6 @@ const getUsers = (req, res, next) => {
 const getUserById = (req, res, next) => {
   const { userId } = req.params;
 
-  if (!userId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
-    return;
-  }
-
   User.findById(userId)
     .then((user) => {
       if (!user) {
@@ -49,11 +42,6 @@ const createUser = async (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  if (!email || !password) {
-    res.status(USER_SIDE_ERROR).send({ message: 'Данные пользователя не отправлены' });
-    return;
-  }
-
   const hash = await bcrypt.hash(password, 6);
 
   const newUser = new User({
@@ -68,6 +56,7 @@ const createUser = async (req, res, next) => {
     .catch((err) => {
       if (err.code === 11000) {
         next(new ConflictError(emailIsAlreadyUsed));
+        return;
       }
 
       next(err);
@@ -77,16 +66,6 @@ const createUser = async (req, res, next) => {
 const updateAvatar = (req, res, next) => {
   const userId = req.user._id;
   const { avatar } = req.body;
-
-  if (!userId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
-    return;
-  }
-
-  if (!avatar) {
-    res.status(USER_SIDE_ERROR).send({ message: 'Аватар пользователя не отправлен' });
-    return;
-  }
 
   User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((user) => {
@@ -103,16 +82,6 @@ const updateUser = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
 
-  if (!userId) {
-    res.status(USER_SIDE_ERROR).send({ message: 'ID пользователя не отправлен' });
-    return;
-  }
-
-  if (!name && !about) {
-    res.status(USER_SIDE_ERROR).send({ message: 'Данные для обновления не переданы' });
-    return;
-  }
-
   User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((data) => {
       if (!data) {
@@ -126,11 +95,6 @@ const updateUser = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(UNAUTHORIZED_ERROR).send({ message: 'Данные для входа в аккаунт не переданы' });
-    return;
-  }
 
   User.findOne({ email }).select('+password')
     .then((user) => {
