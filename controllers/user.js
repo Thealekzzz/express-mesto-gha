@@ -112,7 +112,7 @@ const login = (req, res, next) => {
           throw new UnauthorizedError(invalidUserSigninCredentials);
         }
 
-        const token = jwt.sign({ _id: user._id }, process.env.PRIVATE_KEY, {
+        const token = jwt.sign({ _id: user._id }, process.env.PRIVATE_KEY || '4a952aade591adfb64a57f228cb6c039', {
           expiresIn: '7d',
         });
 
